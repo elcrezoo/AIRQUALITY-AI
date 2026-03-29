@@ -1,0 +1,12 @@
+# © 2026 Enes Bozkurt | KBU Mekatronik Mühendisliği 2026 | enesbozkurt.com.tr
+# Tüm hakları saklıdır. AeroSense AI oturum otomatik başlatma örneği.
+
+[Desktop Entry]
+Type=Application
+Name=AeroSense AI
+Comment=Hava kalitesi masaustu + API — Enes Bozkurt / KBU 2026
+Exec=/usr/bin/python3 /home/jetson/AIRQUALITY_AI/main.py
+Icon=/home/jetson/AIRQUALITY_AI/logo/icon.png
+Terminal=false
+Categories=Science;
+X-GNOME-Autostart-enabled=true

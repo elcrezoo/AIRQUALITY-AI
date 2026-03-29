@@ -1,0 +1,6 @@
+{
+  "sicaklik": {"name": "LM35", "gas": "Temp", "unit": "C", "daq": "ai0"},
+  "mq7": {"name": "MQ-7", "gas": "CO", "unit": "V", "daq": "ai1"},
+  "mq135": {"name": "MQ-135", "gas": "NOx", "unit": "V", "daq": "ai2"},
+  "toz": {"name": "DSM501A", "gas": "PM", "unit": "V", "daq": "ai3"}
+}

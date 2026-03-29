@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0-stable",
+  "copyright": "Copyright © 2026 Enes Bozkurt. Tüm hakları saklıdır.",
+  "author": "Enes Bozkurt",
+  "affiliation": "Karabük Üniversitesi (KBU) — Mekatronik Mühendisliği — 2026",
+  "website": "https://enesbozkurt.com.tr",
+  "classifier": "data/models/aerosense_model.joblib",
+  "anomaly": "data/models/anomaly_iforest.joblib",
+  "notes": "train_model.py ile uretilir; TX2'de bir kez egitim onerilir."
+}

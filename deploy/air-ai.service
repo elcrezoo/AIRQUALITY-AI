@@ -1,0 +1,38 @@
+# AeroSense AI v2.0 — systemd (teknik dokuman 10.1)
+# ------------------------------------------------------------------------------
+# Telif © 2026 Enes Bozkurt — Karabük Üniversitesi (KBU) Mekatronik Müh. 2026
+# https://enesbozkurt.com.tr — Tüm hakları saklıdır.
+# ------------------------------------------------------------------------------
+# sudo cp deploy/air-ai.service /etc/systemd/system/air-ai.service
+# User / WorkingDirectory / yolları TX2 hesabınıza göre düzenleyin.
+# journalctl -u air-ai.service -f
+
+[Unit]
+Description=AeroSense AI v2 — Hava kalitesi (NI DAQ alıcı, API, masaüstü)
+After=network-online.target sound.target graphical.target
+Wants=network-online.target graphical.target
+
+[Service]
+Type=simple
+User=jetson
+Group=jetson
+WorkingDirectory=/home/jetson/AIRQUALITY_AI
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/jetson/.Xauthority
+Environment=AEROSENSE_ROOT=/home/jetson/AIRQUALITY_AI
+Environment=AEROSENSE_API_PORT=38471
+Environment=PYTHONUNBUFFERED=1
+# Basarisiz olsa da servis baslar (-). Gerekirse sudoers ile nvpmodel yetkisi verin.
+ExecStartPre=-/usr/sbin/nvpmodel -m 0
+ExecStartPre=-/usr/sbin/jetson_clocks
+ExecStart=/usr/bin/python3 /home/jetson/AIRQUALITY_AI/main.py
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=120
+StartLimitBurst=8
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aerosense
+
+[Install]
+WantedBy=graphical.target

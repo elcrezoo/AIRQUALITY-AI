@@ -1,0 +1,18 @@
+# ==============================================================================
+# AeroSense AI — Bağımlılık listesi
+# Telif © 2026 Enes Bozkurt | KBU Mekatronik Mühendisliği 2026 | enesbozkurt.com.tr
+# Tüm hakları saklıdır. İzinsiz ticari kullanım yasaktır.
+# ==============================================================================
+# Python 3.6+ (Ubuntu 18.04 / Jetson)
+flask>=1.1.0,<3.0.0
+numpy>=1.16.0
+scikit-learn>=0.20.0
+joblib>=0.14.0
+pandas>=0.24.0
+pyqt5>=5.12.0
+pyqtgraph>=0.11.0
+pyttsx3>=2.90
+
+# Sesli komut (mikrofon + çoğu kurulumda internet; Windows’ta PyAudio ayrı gerekebilir)
+SpeechRecognition>=3.8.0
+# pyaudio — Linux: sudo apt install python3-pyaudio | Windows: pip install pipwin && pipwin install pyaudio
