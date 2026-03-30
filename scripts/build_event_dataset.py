@@ -178,7 +178,6 @@ def build_event_dataset(
     sigara_mask = (
         (mq135_mean > q_high_nox_v)
         & (mq7_mean > (q_high_co_v * 0.8))
-        & (toz_mean < q_high_pm_v)
         & (~smoke_mask)
     )
     event_label = event_label.mask(sigara_mask, 2)
