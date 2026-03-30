@@ -33,6 +33,7 @@ from aerosense_ai.csv_logger import CsvLogger
 from aerosense_ai.daily_csv import DailyCsvLogger
 from aerosense_ai.receiver import start_receiver_thread
 from aerosense_ai.shared_state import SharedState
+from aerosense_ai.event_runtime import start_event_classifier_thread
 from aerosense_ai.telegram_notify import maybe_alert_analysis, maybe_channel_stream
 
 
@@ -88,6 +89,8 @@ def main():
     csv_logger = CsvLogger()
     daily = DailyCsvLogger()
     start_receiver_thread(state, csv_logger, stop_event)
+    # Weak-label olay sınıflandırması (sigara/duman/havasız/kalabalık proxy)
+    start_event_classifier_thread(state, stop_event, interval_sec=2.0)
     run_flask_thread(state, engine_holder)
 
     ai_thread = threading.Thread(

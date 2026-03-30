@@ -82,6 +82,7 @@ def create_app(state, engine_holder):
         latest_d, channels, ts = state.get_latest()
         ai_text, ai_detail = state.get_ai()
         analysis = state.get_analysis()
+        ev = state.get_event()
         health_rows = sensor_health_tr(latest_d, channels, ts)
         out = {
             "timestamp_unix": ts,
@@ -91,6 +92,7 @@ def create_app(state, engine_holder):
             "ai_detail_tr": ai_detail,
             "ai_analysis": analysis,
             "sensor_health": health_rows,
+            "events": ev,
         }
         out["project_notice"] = api_notice_dict()
         return out
@@ -127,6 +129,10 @@ def create_app(state, engine_holder):
     @app.route("/api/ai/analysis", methods=["GET"])
     def api_ai_analysis():
         return jsonify(state.get_analysis())
+
+    @app.route("/api/events/latest", methods=["GET"])
+    def api_events_latest():
+        return jsonify(state.get_event())
 
     @app.route("/api/ai/query", methods=["POST", "OPTIONS"])
     def api_ai_query():

@@ -2463,6 +2463,22 @@ class MainWindow(QMainWindow):
                     "<span style='color:%s'>%s</span>"
                     % (THEME["green"], html.escape(self.t("ai_no_alerts")))
                 )
+            # Event classifier çıktısını (sigara/duman/havasız/kalabalık proxy) ekle
+            try:
+                ev = self.state.get_event()
+                ev_lbl = int(ev.get("event_label", -1)) if ev else -1
+                ev_conf = float(ev.get("confidence", 0)) if ev else 0.0
+                if ev_lbl in (1, 2, 3, 4):
+                    # 1-2: daha ciddi, 3-4: uyarı seviyesi
+                    col = THEME["red"] if ev_lbl in (1, 2) else THEME["orange"]
+                    ev_name = ev.get("event_name") or str(ev_lbl)
+                    parts.append(
+                        "<div style='border-left:3px solid %s;padding:4px 0 4px 8px;margin:4px 0'>"
+                        "<b style='color:%s'>EVENT</b> · %s · <span style='color:#8B9BC4'>%.0f%%</span></div>"
+                        % (col, col, html.escape(ev_name), ev_conf)
+                    )
+            except Exception:
+                pass
             self._txt_bottom_alerts.setHtml("".join(parts))
 
         if getattr(self, "_lbl_lstm_hint", None) and an:

@@ -35,6 +35,9 @@ for _d in (DATA_DIR, MODEL_DIR, LOGS_DIR, CONFIG_DIR):
 MODEL_PATH = os.path.join(MODEL_DIR, "aerosense_model.joblib")
 SCALER_PATH = os.path.join(MODEL_DIR, "aerosense_scaler.joblib")
 ANOMALY_MODEL_PATH = os.path.join(MODEL_DIR, "anomaly_iforest.joblib")
+EVENT_MODEL_PATH = os.path.join(MODEL_DIR, "event_classifier.joblib")
+# Event classifier için rolling pencere boyutu (build_event_dataset.py ile aynı olmalı; default 30)
+EVENT_WINDOW = int(os.environ.get("AEROSENSE_EVENT_WINDOW", "30"))
 ACTIVE_SENSORS_JSON = os.path.join(CONFIG_DIR, "active_sensors.json")
 MODEL_CONFIG_JSON = os.path.join(CONFIG_DIR, "model_config.json")
 # GUI ve bildirimler — yerel JSON (Telegram vb.); repoya commit etmeyin

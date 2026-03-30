@@ -42,6 +42,7 @@ class SharedState(object):
         self._running = True
         self._last_ai_duration_ms = 0.0
         self._data_log = deque(maxlen=50)
+        self._last_event = {}  # event_label tahmini (weak-label classifier)
 
     def set_shutdown(self):
         with self._lock:
@@ -138,6 +139,14 @@ class SharedState(object):
     def get_data_log_rows(self):
         with self._lock:
             return list(self._data_log)
+
+    def set_event(self, event_dict):
+        with self._lock:
+            self._last_event = dict(event_dict) if event_dict else {}
+
+    def get_event(self):
+        with self._lock:
+            return dict(self._last_event)
 
 
 def merge_channel_order(payload_keys, preferred_order):
