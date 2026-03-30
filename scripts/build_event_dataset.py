@@ -16,11 +16,9 @@ Notlar:
 - Leakage olmaması için rolling özellikleri üretildikten sonra eşikler yalnızca train_part'tan hesaplanır.
 """
 
-from __future__ import annotations
-
 import argparse
 import os
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import numpy as np
 import pandas as pd
@@ -52,7 +50,7 @@ def _find_timestamp_col(df: pd.DataFrame) -> Optional[str]:
     return None
 
 
-def _ensure_numeric(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
+def _ensure_numeric(df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
     out = df.copy()
     for c in cols:
         out[c] = pd.to_numeric(out[c], errors="coerce")
