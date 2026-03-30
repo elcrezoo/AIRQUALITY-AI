@@ -172,10 +172,14 @@ def build_event_dataset(
     event_label = event_label.mask(smoke_mask, 1)
 
     # 2) Sigara
-    # Sigara kuralı: mq135 yüksek + mq7 "hafif" yüksek
-    # smoke mask zaten 1'e set edildi; çakışmayı bırakmak istemiyorsan aşağıdaki mask'ten smoke'u çıkarabilirsin.
-    sigara_mask = (mq135_mean > q_high_nox_v) & (mq7_mean > (q_high_co_v * 0.8))
-    sigara_mask = sigara_mask & (~smoke_mask)
+    # Sigara kuralı: mq135 yüksek + mq7 "hafif" yüksek + toz çok yüksek değil
+    # (toz yüksek ise duman/smoke'a kaymasın diye)
+    sigara_mask = (
+        (mq135_mean > q_high_nox_v)
+        & (mq7_mean > (q_high_co_v * 0.8))
+        & (toz_mean < q_high_pm_v)
+        & (~smoke_mask)
+    )
     event_label = event_label.mask(sigara_mask, 2)
 
     # 4) Kalabalık (proxy): VOC yüksek (mq135) + nefes proxy (mq7) yüksek + toz düşük/sınırlı
@@ -184,7 +188,8 @@ def build_event_dataset(
         & (mq7_mean > q_high_co_v)
         & (toz_mean < q_high_pm_v)
         & (~smoke_mask)
-        & (~sigara_mask)
+        # Sigara koşulu ile çakışma olabilir; kalabalık kuralları daha üst seviye olduğu için
+        # burada sigara'yı özellikle dışlamıyoruz (kalabalık 4'e overwrite etsin).
     )
     event_label = event_label.mask(kalabalik_mask, 4)
 
@@ -192,8 +197,9 @@ def build_event_dataset(
     havasiz_mask = (
         (mq135_mean > q_high_nox_v)
         & (mq135_slope.abs() <= stale_slope_abs_thr)
+        & (toz_mean < q_high_pm_v)
         & (~smoke_mask)
-        & (~sigara_mask)
+        # Kalabalık zaten 4'e set edilmişse onu bozmak istemiyoruz.
         & (~kalabalik_mask)
     )
     event_label = event_label.mask(havasiz_mask, 3)
