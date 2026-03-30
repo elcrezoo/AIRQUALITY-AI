@@ -353,6 +353,7 @@
       trend: 'Zaman serisi — tüm kanallar',
       conf: 'Güven',
       anomaly: 'Anomali',
+      aqiIdx: 'AQI idx',
       footUni: 'Karabük Üniversitesi (KBU), Mekatronik Mühendisliği, 2026.',
       footRights: 'Tüm hakları saklıdır. İzinsiz ticari kullanım yasaktır.',
       thCh: 'Kanal', thSt: 'Durum', thMsg: 'Açıklama',
@@ -372,6 +373,7 @@
       trend: 'Time series — all channels',
       conf: 'Confidence',
       anomaly: 'Anomaly',
+      aqiIdx: 'AQI idx',
       footUni: 'Karabük University, Mechatronics Engineering, 2026.',
       footRights: 'All rights reserved. No commercial use without permission.',
       thCh: 'Channel', thSt: 'Status', thMsg: 'Detail',
@@ -557,6 +559,11 @@
       p2.style.background = '#21262d';
       p2.textContent = L.conf + ' %' + (a.confidence != null ? a.confidence : '—');
       pills.appendChild(p2);
+      const pIdx = document.createElement('span');
+      pIdx.className = 'pill';
+      pIdx.style.background = '#161b22';
+      pIdx.textContent = L.aqiIdx + ' ' + (a.aqi_index != null ? a.aqi_index : '—');
+      pills.appendChild(pIdx);
       if (a.is_anomaly) {
         const p3 = document.createElement('span');
         p3.className = 'pill';

@@ -39,10 +39,11 @@ def build_alerts(estimates):
 def analysis_to_summary_tr(result):
     """Kisa satir: sesli geri bildirim + GUI."""
     level = result.get("aqi_level", "-")
+    aqi_idx = result.get("aqi_index", "")
     adv = result.get("advice", "")
     anom = result.get("is_anomaly", False)
     conf = result.get("confidence", 0)
-    parts = ["Hava kalitesi: %s." % level]
+    parts = ["Hava kalitesi: %s (AQI idx %s)." % (level, aqi_idx)]
     if anom:
         parts.append("Anomali tespiti.")
     parts.append("Guven: %%%.0f." % conf)
