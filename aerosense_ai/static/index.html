@@ -500,9 +500,10 @@
     const errBox = document.getElementById('errBox');
     const L = S();
     try {
+      const API_ROOT = window.location.origin;
       const [latest, hist] = await Promise.all([
-        fetchJson('/api/sensors/latest'),
-        fetchJson('/api/history?n=120')
+        fetchJson(API_ROOT + '/api/sensors/latest'),
+        fetchJson(API_ROOT + '/api/history?n=120')
       ]);
       errBox.style.display = 'none';
 
