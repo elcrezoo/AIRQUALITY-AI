@@ -17,6 +17,7 @@ import json
 import os
 import threading
 import time
+import traceback
 
 from flask import Flask, jsonify, request, send_file, send_from_directory
 
@@ -49,6 +50,23 @@ def create_app(state, engine_holder):
         resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         resp.headers["X-AeroSense-Notice"] = NOTICE_ONE_LINE
         return resp
+
+    def _to_py(v):
+        """Flask jsonify icin numpy tiplerini python'a cevirmek."""
+        try:
+            import numpy as np  # noqa
+
+            if isinstance(v, np.generic):
+                return v.item()
+        except Exception:
+            pass
+        if isinstance(v, dict):
+            return {k: _to_py(val) for k, val in v.items()}
+        if isinstance(v, list):
+            return [_to_py(x) for x in v]
+        if isinstance(v, tuple):
+            return [_to_py(x) for x in v]
+        return v
 
     # ----- Dokuman 8.2 web panel -----
     @app.route("/", methods=["GET"])
@@ -107,14 +125,19 @@ def create_app(state, engine_holder):
                 "events": safe_ev,
             }
             out["project_notice"] = api_notice_dict()
-            return out
+            return _to_py(out)
         except Exception as e:
             # 500 yerine JSON dönelim; böylece hata panel/CLI'dan görülebilir.
             try:
                 latest_d, channels, ts = state.get_latest()
             except Exception:
                 latest_d, channels, ts = {}, [], 0.0
-            return {
+            err = str(e)
+            try:
+                err = err + "\n" + traceback.format_exc()
+            except Exception:
+                pass
+            return _to_py({
                 "timestamp_unix": ts,
                 "sensors": latest_d,
                 "channels": channels,
@@ -124,8 +147,8 @@ def create_app(state, engine_holder):
                 "sensor_health": [],
                 "events": {},
                 "project_notice": api_notice_dict(),
-                "api_error": str(e),
-            }
+                "api_error": err,
+            })
 
     @app.route("/api/sensors", methods=["GET"])
     def api_sensors():
