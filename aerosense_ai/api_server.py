@@ -142,19 +142,25 @@ def create_app(state, engine_holder):
 
     @app.route("/api/sensors/history", methods=["GET"])
     def api_sensors_history():
-        n = request.args.get("n", type=int) or 100
-        items = state.get_history(min(n, 5000))
-        out = [{"ts": it["t"], **it["data"]} for it in items]
-        return jsonify({"count": len(out), "items": out})
+        try:
+            n = request.args.get("n", type=int) or 100
+            items = state.get_history(min(n, 5000))
+            out = [{"ts": it["t"], **it["data"]} for it in items]
+            return jsonify({"count": len(out), "items": out})
+        except Exception as e:
+            return jsonify({"count": 0, "items": [], "api_error": str(e)})
 
     @app.route("/api/history", methods=["GET"])
     def history():
-        n = request.args.get("n", type=int) or 200
-        items = state.get_history(min(n, 5000))
-        out = []
-        for it in items:
-            out.append({"t": it["t"], "sensors": it["data"]})
-        return jsonify({"count": len(out), "items": out})
+        try:
+            n = request.args.get("n", type=int) or 200
+            items = state.get_history(min(n, 5000))
+            out = []
+            for it in items:
+                out.append({"t": it["t"], "sensors": it["data"]})
+            return jsonify({"count": len(out), "items": out})
+        except Exception as e:
+            return jsonify({"count": 0, "items": [], "api_error": str(e)})
 
     @app.route("/api/ai/analysis", methods=["GET"])
     def api_ai_analysis():
