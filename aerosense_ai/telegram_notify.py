@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import json
 import sys
 import time
+import re
 
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -72,15 +73,66 @@ def maybe_alert_analysis(analysis, health_rows):
         return
 
     reasons = []
+    sensor_lines = []
+    rapid_lines = []
+    has_critical = False
+    has_warning = False
     if s.get("telegram_on_critical", True):
         for row in health_rows or []:
             st = row.get("status") or ""
             if st in ("hata", "uyari"):
+                if st == "hata":
+                    has_critical = True
+                else:
+                    has_warning = True
                 reasons.append("%s:%s" % (row.get("channel", "?"), st))
+                # Dikkat cekici mesaj formati:
+                try:
+                    v = row.get("value")
+                    if v is not None:
+                        v = float(v)
+                        v_s = ("%.4g" % v).replace("nan", "—")
+                    else:
+                        v_s = "—"
+                except Exception:
+                    v_s = "—"
+                msg_tr = (row.get("message_tr") or "").strip()
+                sensor_lines.append(
+                    "%s | %s | deger=%s | %s"
+                    % (
+                        row.get("channel", "?"),
+                        st.upper(),
+                        v_s,
+                        msg_tr[:140] if msg_tr else "",
+                    )
+                )
     if s.get("telegram_on_aqi_bad", True) and analysis:
         lv = analysis.get("aqi_level")
         if _is_bad_aqi(lv):
+            has_critical = True
             reasons.append("aqi:%s" % lv)
+    has_rapid = False
+
+    # Hızlı değişim uyarıları (RAPID)
+    if analysis:
+        alerts = analysis.get("alerts") or []
+        try:
+            for sev, msg in alerts:
+                if (sev or "").strip().upper() == "RAPID":
+                    has_rapid = True
+                    # Debounce icin mesajdaki sayisal degerleri kirpiyoruz (spam azalt).
+                    ms = str(msg)
+                    m = re.search(r"^(.*)\s+hızlı\s+(artiyor|azaliyor)", ms, flags=re.I)
+                    if m:
+                        ch = (m.group(1) or "").strip()
+                        direction = (m.group(2) or "").strip().lower()
+                        reasons.append("rapid:%s:%s" % (ch, direction))
+                        rapid_lines.append("RAPID: %s %s" % (ch, direction))
+                    else:
+                        reasons.append("rapid:%s" % (ms[:60]))
+                        rapid_lines.append("RAPID: %s" % ms[:90])
+        except Exception:
+            pass
 
     if not reasons:
         return
@@ -91,22 +143,36 @@ def maybe_alert_analysis(analysis, health_rows):
     if prev_sig == sig and (now - prev_t) < _DEBOUNCE_SEC:
         return
 
-    parts = ["⚠ AeroSense AI"]
+    if has_critical:
+        parts = ["!!! KRITIK UYARI !!!", "AeroSense AI"]
+        # kritik anlik degisimi daha once vurgula:
+        if has_rapid:
+            parts.append("(ANI GELISIM)")
+        parts.append("DURUM: KRITIK")
+    elif has_warning or has_rapid:
+        parts = ["!!! UYARI !!!", "AeroSense AI"]
+        if has_rapid:
+            parts.append("RAPID(ANI) tespiti")
+        parts.append("DURUM: UYARI")
+    else:
+        parts = ["⚠ AeroSense AI"]
+    # Anlik zaman bilgisini mesajda goster (debounce imzasina dahil degil)
+    try:
+        parts.append("Anlik: %s" % time.strftime("%H:%M:%S"))
+    except Exception:
+        pass
     if analysis:
         parts.append("AQI: %s" % analysis.get("aqi_level", "—"))
         summ = (analysis.get("summary_tr") or "").strip()
         if summ:
             parts.append(summ[:800])
-    for row in health_rows or []:
-        if row.get("status") != "ok":
-            parts.append(
-                "%s · %s · %s"
-                % (
-                    row.get("channel", "?"),
-                    row.get("status", "?"),
-                    (row.get("message_tr") or "")[:200],
-                )
-            )
+    # Sensor uyarilari (hata/uyari) - daha belirgin format
+    for line in sensor_lines[:6]:
+        parts.append(line)
+
+    # RAPID (ani degisim) - en altta tek satirlik vurgular
+    for line in rapid_lines[:3]:
+        parts.append(line)
     msg = "\n".join(parts)[:4000]
     if send_telegram_message(msg, settings=s):
         _last_send = (sig, now)

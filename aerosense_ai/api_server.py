@@ -24,6 +24,7 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 from . import config
 from .ai.interpreter import answer_query_tr
 from .ai_engine import sensor_health_tr
+from .ai_summary import build_ai_summary_from_csv
 from .project_meta import NOTICE_ONE_LINE, api_notice_dict
 
 
@@ -167,7 +168,10 @@ def create_app(state, engine_holder):
     def api_sensors_history():
         try:
             n = request.args.get("n", type=int) or 100
-            items = state.get_history(min(n, 5000))
+            limit = n
+            if getattr(config, "HISTORY_API_MAX", 0) and config.HISTORY_API_MAX > 0:
+                limit = min(n, int(config.HISTORY_API_MAX))
+            items = state.get_history(limit)
             out = [{"ts": it["t"], **it["data"]} for it in items]
             return jsonify({"count": len(out), "items": out})
         except Exception as e:
@@ -177,7 +181,10 @@ def create_app(state, engine_holder):
     def history():
         try:
             n = request.args.get("n", type=int) or 200
-            items = state.get_history(min(n, 5000))
+            limit = n
+            if getattr(config, "HISTORY_API_MAX", 0) and config.HISTORY_API_MAX > 0:
+                limit = min(n, int(config.HISTORY_API_MAX))
+            items = state.get_history(limit)
             out = []
             for it in items:
                 out.append({"t": it["t"], "sensors": it["data"]})
@@ -215,6 +222,27 @@ def create_app(state, engine_holder):
             analysis = state.get_analysis()
         reply = answer_query_tr(q, latest_d, analysis)
         return jsonify({"q": q, "answer_tr": reply})
+
+    @app.route("/api/ai/summary", methods=["POST", "OPTIONS"])
+    def api_ai_summary():
+        if request.method == "OPTIONS":
+            return ("", 204)
+        data = request.get_json(force=True, silent=True) or {}
+        mode = (data.get("mode") or "").strip().lower()
+        lang = (data.get("lang") or "tr").strip().lower()
+        if mode not in ("today", "uptime", "custom"):
+            mode = "today"
+        since_ts_unix = data.get("since_ts_unix")
+        try:
+            out = build_ai_summary_from_csv(
+                mode=mode,
+                lang=lang,
+                since_ts_unix=since_ts_unix,
+                state=state,
+            )
+            return jsonify(out)
+        except Exception as e:
+            return jsonify({"summary_tr": "", "detail_tr": "", "api_error": str(e)})
 
     @app.route("/api/alerts", methods=["GET"])
     def api_alerts():

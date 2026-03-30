@@ -58,6 +58,7 @@ from . import config
 from . import project_meta
 from . import sys_metrics
 from . import user_settings
+from .ai_summary import build_ai_summary_from_csv
 from .ai_engine import sensor_health_tr
 from .daily_csv import build_tablo_fieldnames
 from .industrial_ui import THEME, aqi_style_for_level, apply_pyqtgraph_theme
@@ -2065,8 +2066,40 @@ class MainWindow(QMainWindow):
         d.exec_()
 
     def _on_speak(self):
-        text, _ = self.state.get_ai()
-        msg = text or self.t("no_analysis")
+        # "Özet" akisi: kullanicinin secimine gore günlük / bu ana kadar
+        # - Voice aktifse konusur
+        # - Voice yoksa ozet penceresi acar
+        mode = "today"
+        try:
+            q = self.t("dlg_summary_title")
+            tip = (
+                "Günlük özet mi?\n"
+                "Evet = Bugün\n"
+                "Hayır = Bu ana kadar (program açılışından itibaren)"
+            )
+            res = QMessageBox.question(
+                self,
+                q,
+                tip,
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                QMessageBox.Yes,
+            )
+            if res == QMessageBox.Yes:
+                mode = "today"
+            elif res == QMessageBox.No:
+                mode = "uptime"
+            else:
+                return
+        except Exception:
+            mode = "today"
+
+        out = {}
+        try:
+            out = build_ai_summary_from_csv(mode=mode, lang=self._lang, state=self.state)
+        except Exception:
+            out = {}
+
+        msg = out.get("detail_tr") or out.get("summary_tr") or self.t("no_analysis")
         if self.voice:
             self.voice.speak(msg)
         else:
@@ -2413,7 +2446,8 @@ class MainWindow(QMainWindow):
                 self._pb_gpu.setValue(0)
                 self._lbl_gpu_pct.setText("—")
 
-        hist = self.state.get_history(400)
+        # Kullanici tercihi: sınırsız (0) veya tüm geçmiş ya da belirli nokta sayisi
+        hist = self.state.get_history(config.HISTORY_UI_POINTS)
         for _k, card in self._sensor_cards.items():
             card.update_spark(hist, 60)
 
@@ -2458,11 +2492,6 @@ class MainWindow(QMainWindow):
                             html.escape(str(row.get("message_tr", ""))[:120]),
                         )
                     )
-            if not parts:
-                parts.append(
-                    "<span style='color:%s'>%s</span>"
-                    % (THEME["green"], html.escape(self.t("ai_no_alerts")))
-                )
             # Event classifier çıktısını (sigara/duman/havasız/kalabalık proxy) ekle
             try:
                 ev = self.state.get_event()
@@ -2479,6 +2508,31 @@ class MainWindow(QMainWindow):
                     )
             except Exception:
                 pass
+
+            # AI hızlı değişim (RAPID) uyarılarını da ekle
+            try:
+                now_tr = datetime.now().strftime("%H:%M:%S")
+                alerts = (an or {}).get("alerts") or []
+                for sev, msg in alerts:
+                    if (str(sev) or "").strip().upper() == "RAPID":
+                        parts.append(
+                            "<div style='border-left:3px solid %s;padding:4px 0 4px 8px;margin:4px 0'>"
+                            "<b style='color:%s'>RAPID</b> · %s <span style='color:#8B9BC4'>%s</span></div>"
+                            % (
+                                THEME["orange"],
+                                THEME["orange"],
+                                html.escape(now_tr),
+                                html.escape(str(msg))[:180],
+                            )
+                        )
+            except Exception:
+                pass
+
+            if not parts:
+                parts.append(
+                    "<span style='color:%s'>%s</span>"
+                    % (THEME["green"], html.escape(self.t("ai_no_alerts")))
+                )
             self._txt_bottom_alerts.setHtml("".join(parts))
 
         if getattr(self, "_lbl_lstm_hint", None) and an:
@@ -2496,23 +2550,56 @@ class MainWindow(QMainWindow):
 
         sig = None
         if an:
+            rapid_bits = []
+            try:
+                alerts = an.get("alerts") or []
+                for sev, msg in alerts:
+                    if (str(sev) or "").strip().upper() != "RAPID":
+                        continue
+                    ms = str(msg or "")
+                    ms_l = ms.lower()
+                    direction = "artiyor" if "artiyor" in ms_l else "azaliyor" if "azaliyor" in ms_l else ""
+                    ch = ms.split("hızlı", 1)[0].split(" hızlı", 1)[0].strip(": ").strip()
+                    if direction and ch:
+                        rapid_bits.append("%s %s" % (ch, direction))
+                    else:
+                        rapid_bits.append(ms[:40].strip())
+            except Exception:
+                pass
+            rapid_sig = "|".join(rapid_bits[:2])
             sig = (
                 str(an.get("aqi_level", "")),
                 int(round(float(an.get("confidence", 0)))),
+                rapid_sig,
             )
         h_an = hash(sig) if sig else 0
         if h_an != self._last_ai_log_hash and getattr(self, "_txt_ai_event_log", None):
             self._last_ai_log_hash = h_an
             if an:
+                now_tr = datetime.now().strftime("%H:%M:%S")
                 self._txt_ai_event_log.append(
                     "<span style='color:#9B72F5'>[%s]</span> "
                     "<span style='color:#DDE3F5'>AQI %s · %.0f%%</span>"
                     % (
-                        datetime.now().strftime("%H:%M:%S"),
+                        now_tr,
                         html.escape(str(an.get("aqi_level", "—"))),
                         float(an.get("confidence", 0)),
                     )
                 )
+                try:
+                    alerts = an.get("alerts") or []
+                    for sev, msg in alerts:
+                        if (str(sev) or "").strip().upper() != "RAPID":
+                            continue
+                        self._txt_ai_event_log.append(
+                            "<span style='color:#9B72F5'>[%s]</span> "
+                            "<span style='color:#F6A200'>⚡ RAPID</span> "
+                            "<span style='color:#DDE3F5'>%s</span>"
+                            % (now_tr, html.escape(str(msg))[:140])
+                        )
+                        break
+                except Exception:
+                    pass
 
         for key in config.CHANNEL_ORDER:
             vl = self._per_ch_values.get(key)

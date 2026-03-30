@@ -152,6 +152,18 @@
       font-weight: 700;
     }
     .hero p.summary { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text); }
+    .hero .sum-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+    .hero .sum-actions button {
+      background: #0d1117;
+      color: var(--text);
+      border: 1px solid var(--accent);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .hero .sum-actions button:hover { border-color: var(--accent_cyan); }
     .grid-sensors {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -289,6 +301,10 @@
         <div class="pills" id="pills"></div>
         <div class="aqi-big" id="aqiBig">—</div>
         <p class="summary" id="aiSummary">…</p>
+        <div class="sum-actions">
+          <button id="btnAiSummaryToday" type="button">Özet: Bugün</button>
+          <button id="btnAiSummaryUptime" type="button">Özet: Bu ana kadar</button>
+        </div>
       </div>
       <div class="grid-sensors" id="sensorGrid"></div>
       <div class="chart-block">
@@ -608,6 +624,35 @@
       document.getElementById('liveDot').className = 'live err';
     }
   }
+
+  async function fetchAiSummary(mode) {
+    const errBox = document.getElementById('errBox');
+    try {
+      errBox.style.display = 'none';
+      const API_ROOT = window.location.origin;
+      const r = await fetch(API_ROOT + '/api/ai/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, lang })
+      });
+      if (!r.ok) throw new Error(r.statusText);
+      const d = await r.json();
+      if (d.api_error) throw new Error(d.api_error);
+      document.getElementById('aiSummary').textContent =
+        d.summary_tr || (lang === 'en' ? 'No summary yet.' : 'Özet yok.');
+      document.getElementById('aiDetail').textContent =
+        d.detail_tr || d.summary_tr || '—';
+    } catch (e) {
+      errBox.style.display = 'block';
+      errBox.textContent = 'Summary error: ' + e.message;
+      document.getElementById('liveDot').className = 'live err';
+    }
+  }
+
+  const btnToday = document.getElementById('btnAiSummaryToday');
+  if (btnToday) btnToday.addEventListener('click', () => fetchAiSummary('today'));
+  const btnUptime = document.getElementById('btnAiSummaryUptime');
+  if (btnUptime) btnUptime.addEventListener('click', () => fetchAiSummary('uptime'));
 
   setLang(lang);
 

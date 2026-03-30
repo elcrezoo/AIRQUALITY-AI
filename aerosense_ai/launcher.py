@@ -35,6 +35,8 @@ from aerosense_ai.receiver import start_receiver_thread
 from aerosense_ai.shared_state import SharedState
 from aerosense_ai.event_runtime import start_event_classifier_thread
 from aerosense_ai.telegram_notify import maybe_alert_analysis, maybe_channel_stream
+from aerosense_ai.ai.interpreter import analysis_to_summary_tr
+from aerosense_ai import config
 
 
 def _ai_loop(state, engine, stop_event, daily):
@@ -43,10 +45,65 @@ def _ai_loop(state, engine, stop_event, daily):
         latest, ch, ts = state.get_latest()
         if latest:
             try:
+                # AI motoru icin kisa gecmis
                 hist = state.get_history(120)
                 t_ai = time.perf_counter()
                 r = engine.analyze(latest, ch, hist)
                 state.set_ai_timing_ms((time.perf_counter() - t_ai) * 1000.0)
+
+                # HIZLI DEGISIM (rate-of-change) uyarisi:
+                # - anlik degisimleri yakalar (örn. mq135/mq7/toz hizi artiyor/azaliyor)
+                # - Telegram ve GUI'de net gorunmesi icin r["alerts"] listesine eklenir
+                try:
+                    rapid_N = max(5, int(getattr(config, "RAPID_SAMPLES", 20)))
+                    rel_thr = float(getattr(config, "RAPID_REL_THRESHOLD", 0.25))
+                    abs_thr = float(getattr(config, "RAPID_ABS_THRESHOLD", 0.0))
+                    rate_hist = state.get_history(max(2 * rapid_N + 5, 40))
+                    rapid_alerts = []
+                    for key in (ch or []):
+                        try:
+                            cur = latest.get(key)
+                            if cur is None:
+                                continue
+                            # deger dizisi (chronological)
+                            vals = []
+                            for it in rate_hist:
+                                d = it.get("data") or {}
+                                v = d.get(key)
+                                if v is None:
+                                    continue
+                                try:
+                                    vals.append(float(v))
+                                except Exception:
+                                    continue
+                            if len(vals) < 2 * rapid_N + 1:
+                                continue
+                            prev_slice = vals[-2 * rapid_N : -rapid_N]
+                            if not prev_slice:
+                                continue
+                            prev_avg = sum(prev_slice) / float(len(prev_slice))
+                            delta = float(cur) - float(prev_avg)
+                            rel = abs(delta) / (abs(prev_avg) + 1e-9)
+                            if rel_thr > 0 and rel >= rel_thr and abs(delta) >= abs_thr:
+                                direction = "artiyor" if delta > 0 else "azaliyor"
+                                rapid_alerts.append(
+                                    (
+                                        "RAPID",
+                                        "%s hızlı %s (Δ=%+.4g, rel=%.2f×)"
+                                        % (key, direction, delta, rel),
+                                    )
+                                )
+                        except Exception:
+                            continue
+                    # En buyuk 2 hizli uyarinin yazilmasi (spam engeli)
+                    if rapid_alerts:
+                        rapid_alerts = rapid_alerts[:2]
+                        cur_alerts = list(r.get("alerts") or [])
+                        r["alerts"] = list(rapid_alerts) + cur_alerts
+                        r["summary_tr"] = analysis_to_summary_tr(r)
+                except Exception:
+                    pass
+
                 state.set_analysis(r)
                 state.set_ai(r.get("summary_tr", ""), r.get("detail_tr", ""))
                 health_rows = sensor_health_tr(latest, ch, ts)
@@ -82,7 +139,7 @@ def main():
     print("[AeroSense]", NOTICE_ONE_LINE)
     print("[AeroSense]", COPYRIGHT_LINE)
     stop_event = threading.Event()
-    state = SharedState(history_max=800)
+    state = SharedState(history_max=config.HISTORY_MAX if hasattr(config, "HISTORY_MAX") else 800)
     engine = AIEngine()
     engine_holder = {"engine": engine}
 

@@ -114,6 +114,23 @@ CHANNEL_HEALTH_RANGES = {
 # Veri bayat sayılması (saniye)
 STALE_SECONDS = float(os.environ.get("AEROSENSE_STALE_SEC", "15"))
 
+# History / anlık görselleştirme
+# history_max <= 0 ise sınırsız (deque maxlen'siz) davranır.
+HISTORY_MAX = int(os.environ.get("AEROSENSE_HISTORY_MAX", "0"))
+# GUI için çizimde kullanılacak maksimum nokta sayısı:
+# 0 veya daha büyükse tüm geçmişi kullanır (state içindeki history_max kadar).
+HISTORY_UI_POINTS = int(os.environ.get("AEROSENSE_HISTORY_UI_POINTS", "0"))
+
+# Hızlı değişim (rate) uyarıları
+RAPID_SAMPLES = int(os.environ.get("AEROSENSE_RAPID_SAMPLES", "20"))
+# göreli eşik: abs(delta)/abs(prev_avg) > RAPID_REL_THRESHOLD ise uyarı
+RAPID_REL_THRESHOLD = float(os.environ.get("AEROSENSE_RAPID_REL_THRESHOLD", "0.25"))
+# mutlak delta eşik (proxy): abs(delta) > RAPID_ABS_THRESHOLD ise uyarı
+RAPID_ABS_THRESHOLD = float(os.environ.get("AEROSENSE_RAPID_ABS_THRESHOLD", "0.0"))
+
+# API tarihce limit (performans icin). 0/negatif ise sinirsiz.
+HISTORY_API_MAX = int(os.environ.get("AEROSENSE_HISTORY_API_MAX", "5000"))
+
 # Kural tabanlı eşikler (voltaj, LM35 hariç)
 THRESHOLDS_MQ7_HIGH = float(os.environ.get("AEROSENSE_MQ7_HIGH", "2.5"))
 THRESHOLDS_MQ135_HIGH = float(os.environ.get("AEROSENSE_MQ135_HIGH", "2.5"))

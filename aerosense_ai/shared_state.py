@@ -37,7 +37,12 @@ class SharedState(object):
         self.ai_detail_tr = u""
         self._last_analysis = {}
         self.history_max = history_max
-        self._history = deque(maxlen=history_max)
+        # history_max <= 0 veya None ise "sınırsız" (deque maxlen'siz) sakla.
+        # Not: bu durumda bellek büyüyebilir; gerçek kullanımda çok büyük bir değer daha güvenlidir.
+        if history_max is None or history_max <= 0:
+            self._history = deque()
+        else:
+            self._history = deque(maxlen=history_max)
         self._webhook_urls = []  # list of str
         self._running = True
         self._last_ai_duration_ms = 0.0
