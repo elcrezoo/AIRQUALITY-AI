@@ -82,7 +82,16 @@ def create_app(state, engine_holder):
         latest_d, channels, ts = state.get_latest()
         ai_text, ai_detail = state.get_ai()
         analysis = state.get_analysis()
-        ev = state.get_event()
+        ev_raw = state.get_event()
+        # JSON uyumluluk için sadece temel alanları döndürüyoruz (proba gibi nested alanlar bazı platformlarda hata çıkarabilir)
+        safe_ev = {}
+        try:
+            if isinstance(ev_raw, dict):
+                for k in ("event_label", "event_name", "confidence"):
+                    if k in ev_raw:
+                        safe_ev[k] = ev_raw.get(k)
+        except Exception:
+            safe_ev = {}
         health_rows = sensor_health_tr(latest_d, channels, ts)
         out = {
             "timestamp_unix": ts,
@@ -92,7 +101,7 @@ def create_app(state, engine_holder):
             "ai_detail_tr": ai_detail,
             "ai_analysis": analysis,
             "sensor_health": health_rows,
-            "events": ev,
+            "events": safe_ev,
         }
         out["project_notice"] = api_notice_dict()
         return out
@@ -132,7 +141,14 @@ def create_app(state, engine_holder):
 
     @app.route("/api/events/latest", methods=["GET"])
     def api_events_latest():
-        return jsonify(state.get_event())
+        # Aynı safe alanlar
+        ev_raw = state.get_event() or {}
+        safe_ev = {}
+        if isinstance(ev_raw, dict):
+            for k in ("event_label", "event_name", "confidence"):
+                if k in ev_raw:
+                    safe_ev[k] = ev_raw.get(k)
+        return jsonify(safe_ev)
 
     @app.route("/api/ai/query", methods=["POST", "OPTIONS"])
     def api_ai_query():
