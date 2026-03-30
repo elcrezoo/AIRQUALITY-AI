@@ -164,6 +164,7 @@ def build_event_dataset(
     mq135_mean = feats["mq135_mean"]
     mq135_slope = feats["mq135_slope"]
     mq7_mean = feats["mq7_mean"]
+    mq7_slope = feats["mq7_slope"]
 
     event_label = pd.Series(0, index=feats.index, dtype=np.int64)
 
@@ -183,13 +184,15 @@ def build_event_dataset(
     event_label = event_label.mask(sigara_mask, 2)
 
     # 4) Kalabalık (proxy): VOC yüksek (mq135) + nefes proxy (mq7) yüksek + toz düşük/sınırlı
+    # Kalabalık proxy'si: VOC (mq135) artışı ve "nefes" proxy'si (mq7) birlikte yükselmeli.
+    # Böylece "havasız (durağan VOC)" örneklerini kalabalık 4'e yanlış çekmemiş oluyoruz.
     kalabalik_mask = (
         (mq135_mean > q_high_nox_v)
         & (mq7_mean > q_high_co_v)
         & (toz_mean < q_high_pm_v)
+        & (mq135_slope > 0)
+        & (mq7_slope > 0)
         & (~smoke_mask)
-        # Sigara koşulu ile çakışma olabilir; kalabalık kuralları daha üst seviye olduğu için
-        # burada sigara'yı özellikle dışlamıyoruz (kalabalık 4'e overwrite etsin).
     )
     event_label = event_label.mask(kalabalik_mask, 4)
 
