@@ -79,32 +79,53 @@ def create_app(state, engine_holder):
         return jsonify(body)
 
     def _payload_latest():
-        latest_d, channels, ts = state.get_latest()
-        ai_text, ai_detail = state.get_ai()
-        analysis = state.get_analysis()
-        ev_raw = state.get_event()
-        # JSON uyumluluk için sadece temel alanları döndürüyoruz (proba gibi nested alanlar bazı platformlarda hata çıkarabilir)
-        safe_ev = {}
         try:
-            if isinstance(ev_raw, dict):
-                for k in ("event_label", "event_name", "confidence"):
-                    if k in ev_raw:
-                        safe_ev[k] = ev_raw.get(k)
-        except Exception:
+            latest_d, channels, ts = state.get_latest()
+            ai_text, ai_detail = state.get_ai()
+            analysis = state.get_analysis()
+
+            ev_raw = state.get_event()
+            # JSON uyumluluk için sadece temel alanları döndürüyoruz.
             safe_ev = {}
-        health_rows = sensor_health_tr(latest_d, channels, ts)
-        out = {
-            "timestamp_unix": ts,
-            "sensors": latest_d,
-            "channels": channels,
-            "ai_tr": ai_text,
-            "ai_detail_tr": ai_detail,
-            "ai_analysis": analysis,
-            "sensor_health": health_rows,
-            "events": safe_ev,
-        }
-        out["project_notice"] = api_notice_dict()
-        return out
+            try:
+                if isinstance(ev_raw, dict):
+                    for k in ("event_label", "event_name", "confidence"):
+                        if k in ev_raw:
+                            safe_ev[k] = ev_raw.get(k)
+            except Exception:
+                safe_ev = {}
+
+            health_rows = sensor_health_tr(latest_d, channels, ts)
+            out = {
+                "timestamp_unix": ts,
+                "sensors": latest_d,
+                "channels": channels,
+                "ai_tr": ai_text,
+                "ai_detail_tr": ai_detail,
+                "ai_analysis": analysis,
+                "sensor_health": health_rows,
+                "events": safe_ev,
+            }
+            out["project_notice"] = api_notice_dict()
+            return out
+        except Exception as e:
+            # 500 yerine JSON dönelim; böylece hata panel/CLI'dan görülebilir.
+            try:
+                latest_d, channels, ts = state.get_latest()
+            except Exception:
+                latest_d, channels, ts = {}, [], 0.0
+            return {
+                "timestamp_unix": ts,
+                "sensors": latest_d,
+                "channels": channels,
+                "ai_tr": "",
+                "ai_detail_tr": "",
+                "ai_analysis": {},
+                "sensor_health": [],
+                "events": {},
+                "project_notice": api_notice_dict(),
+                "api_error": str(e),
+            }
 
     @app.route("/api/sensors", methods=["GET"])
     def api_sensors():
