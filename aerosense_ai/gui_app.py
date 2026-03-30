@@ -222,7 +222,7 @@ UI_STR = {
         "tbl_ch": "Kanal",
         "tbl_st": "Durum",
         "tbl_msg": "Açıklama",
-        "hero_wait": "Özet: veri bekleniyor (mock veya verici bağlayın).",
+        "hero_wait": "Özet: veri bekleniyor (TCP üzerinden verici bağlayın).",
         "aqi_title": "Hava kalitesi özeti",
         "aqi_pending": "AQI henüz hesaplanmadı.",
         "stable": "✓ Stabil",
@@ -252,7 +252,12 @@ UI_STR = {
         "ai_sec_detail": "📋 Detaylı analiz metni",
         "ai_updated": "Son güncelleme: %s",
         "ai_no_analysis_run": "AI analizi henüz çalışmadı veya sensör verisi yok.",
-        "ai_hint_mock": "PC önizleme: <code>AEROSENSE_MOCK=1</code> ile örnek veri alın.",
+        "ai_hint_ask": (
+            "Kısa özet için «durum» veya «özet» yazın ya da 🔊 ile sesli özet alın."
+        ),
+        "ai_hint_no_sensor": (
+            "Sensör verisi geldiğinde analiz burada görünür. Verici bağlantısını ve TCP portunu kontrol edin."
+        ),
         "ai_no_alerts": "Şu an tetiklenen uyarı yok.",
         "ai_est_co": "CO (tahmini)",
         "ai_est_nox": "NOx benzeri",
@@ -350,7 +355,7 @@ UI_STR = {
         "tbl_ch": "Channel",
         "tbl_st": "Status",
         "tbl_msg": "Detail",
-        "hero_wait": "Summary: waiting for data (enable mock or connect the sender).",
+        "hero_wait": "Summary: waiting for data (connect the sender over TCP).",
         "aqi_title": "Air quality summary",
         "aqi_pending": "AQI not computed yet.",
         "stable": "✓ Stable",
@@ -380,7 +385,12 @@ UI_STR = {
         "ai_sec_detail": "📋 Detailed analysis",
         "ai_updated": "Last update: %s",
         "ai_no_analysis_run": "No AI analysis yet or no sensor data.",
-        "ai_hint_mock": "Preview: set <code>AEROSENSE_MOCK=1</code> for sample data.",
+        "ai_hint_ask": (
+            "Type «status» or «summary» for a short overview, or use 🔊 Speak summary."
+        ),
+        "ai_hint_no_sensor": (
+            "Analysis appears when sensor data arrives. Check sender connection and TCP port."
+        ),
         "ai_no_alerts": "No active alerts.",
         "ai_est_co": "CO (est.)",
         "ai_est_nox": "NOx-like",
@@ -1291,14 +1301,12 @@ class MainWindow(QMainWindow):
         if getattr(self, "_txt_settings_env", None):
             self._txt_settings_env.setHtml(
                 "<pre style='color:#DDE3F5;font-family:Consolas,monospace;font-size:11px'>"
-                "AEROSENSE_MOCK=%s\n"
                 "AEROSENSE_VOICE=%s\n"
                 "AEROSENSE_VOICE_COMMANDS=%s\n"
                 "AEROSENSE_LANG=%s\n"
                 "AEROSENSE_API_PORT=%s\n"
                 "</pre>"
                 % (
-                    os.environ.get("AEROSENSE_MOCK", ""),
                     os.environ.get("AEROSENSE_VOICE", ""),
                     os.environ.get("AEROSENSE_VOICE_COMMANDS", ""),
                     os.environ.get("AEROSENSE_LANG", self._lang),
@@ -1822,7 +1830,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 self.t("btn_send"),
-                self.t("ai_hint_mock"),
+                self.t("ai_hint_ask"),
             )
 
     def _on_mic_hint(self):
@@ -2142,7 +2150,7 @@ class MainWindow(QMainWindow):
                 "<p style='margin-top:14px;font-size:13px;color:#8b949e;line-height:1.5'>%s</p>"
                 % (
                     html.escape(self.t("ai_no_analysis_run")),
-                    self.t("ai_hint_mock"),
+                    self.t("ai_hint_no_sensor"),
                 )
             )
             body_sum.setText(ph)

@@ -36,10 +36,6 @@ from aerosense_ai.shared_state import SharedState
 from aerosense_ai.telegram_notify import maybe_alert_analysis, maybe_channel_stream
 
 
-def _use_mock():
-    return os.environ.get("AEROSENSE_MOCK", "").lower() in ("1", "true", "yes")
-
-
 def _ai_loop(state, engine, stop_event, daily):
     first = True
     while state.running and not stop_event.is_set():
@@ -91,15 +87,7 @@ def main():
 
     csv_logger = CsvLogger()
     daily = DailyCsvLogger()
-    if _use_mock():
-        from aerosense_ai.mock_feed import start_mock_feed_thread
-
-        start_mock_feed_thread(state, stop_event, interval_sec=1.0)
-        print(
-            "[launcher] AEROSENSE_MOCK=1 — sahte sensör verisi (PC onizleme; TX2 gerekmez)."
-        )
-    else:
-        start_receiver_thread(state, csv_logger, stop_event)
+    start_receiver_thread(state, csv_logger, stop_event)
     run_flask_thread(state, engine_holder)
 
     ai_thread = threading.Thread(

@@ -244,7 +244,7 @@ class VoiceService(object):
             if not parts:
                 parts.append(
                     "Henüz sensör verisi yok veya bağlantı bekleniyor. "
-                    "Mock için AEROSENSE_MOCK=1 kullanın."
+                    "Verici bağlantısını ve TCP portunu kontrol edin."
                 )
         text = " ".join(parts)
         return text[:900]

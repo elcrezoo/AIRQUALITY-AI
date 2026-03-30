@@ -37,33 +37,25 @@ Bu depo ve ürünleştirilmiş sürümler üzerindeki morali ve mali haklar Enes
 
 ---
 
-## Windows / PC’de arayüz önizlemesi (TX2 yokken)
+## Windows / PC’de arayüz (TX2 yokken)
 
-Jetson yanınızda değilken masaüstü arayüzü ve grafikleri görmek için mevcut bilgisayarınızda çalıştırabilirsiniz.
+Arayüzü PC’de de çalıştırabilirsiniz; **canlı grafikler için** bu makinede veya ağdaki bir Jetson üzerinde çalışan uygulamanın TCP **5005** üzerinden sensör verisi alması gerekir (ör. `NIDAQ TEST/verici.py` ile TX2’ye bağlanma senaryosu, `KURULUM.md`).
 
 1. Python 3.7+ önerilir. Proje klasöründe:
    ```bash
    pip install -r requirements.txt
    ```
-2. **Sahte sensör modu** (TX2 ve NI DAQ vericisi gerekmez; grafikler canlı hareket eder):
-   - **PowerShell:**
-     ```powershell
-     cd "C:\Users\...\AIRQUALITY AI"
-     $env:AEROSENSE_MOCK="1"
-     $env:AEROSENSE_VOICE="1"
-     python main.py
-     ```
-   - **cmd:**
-     ```cmd
-     set AEROSENSE_MOCK=1
-     set AEROSENSE_VOICE=1
-     python main.py
-     ```
+2. Örnek (PowerShell):
+   ```powershell
+   cd "C:\Users\...\AIRQUALITY AI"
+   $env:AEROSENSE_VOICE="1"
+   python main.py
+   ```
 3. Tarayıcıdan panel: `http://127.0.0.1:38471/` (API varsayılan portu **38471**).
 
 **Ses:** `AEROSENSE_VOICE=1` → konuşma (TTS). `AEROSENSE_VOICE_COMMANDS=1` (varsayılan) → mikrofonla “durum / hava kalitesi” vb. İkisi bağımsız: TTS’i kapatıp sadece komut için `AEROSENSE_VOICE=0` bırakabilirsiniz. Otomatik AI ses uyarısı: `AEROSENSE_VOICE_ALERTS=1` (varsayılan). Tam ekran: `AEROSENSE_FULLSCREEN=0`.
 
-Mock kapalıyken PC’de de çalışır; ancak veri gelmezse grafik boş kalır (sadece TCP `5005`’e bağlanan verici veri gönderirse dolar).
+Veri gelmezse grafikler boş kalır; TCP `5005`’e bağlanan verici akışını kontrol edin.
 
 ---
 
